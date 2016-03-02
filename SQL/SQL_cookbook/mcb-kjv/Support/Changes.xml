@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<changelog>
+<book>MySQL Cookbook</book>
+<distribution-id>mcb-kjv</distribution-id>
+<distribution-name>mcb-kjv</distribution-name>
+<url>http://www.kitebird.com/mysql-cookbook/</url>
+<downloads>http://www.kitebird.com/mysql-cookbook</downloads>
+
+<changeset>
+<version>1.04</version>
+<date>2014-07-27</date>
+
+<items>
+<item>
+Several files: Minor revisions, typo fixes.
+</item>
+</items>
+</changeset>
+
+<changeset>
+<version>1.03</version>
+<date>2013-08-09</date>
+
+<items>
+<item>
+Regenerated the KJV .txt files from the current KJV files available
+at Biola. (There is little difference in content from the previous
+versions. Words previously marked with [...] are no longer so marked,
+and there are other minor punctuation differences.)
+</item>
+<item>
+kjv.sql:
+Modified CREATE TABLE to
+update TYPE = MyISAM (obsolete) to ENGINE = MyISAM.
+Added comments about how to use InnoDB instead, for MySQL servers that
+support FULLTEXT for InnoDB (that is, MySQL 5.6 or higher).
+</item>
+<item>
+index_kjv.sql:
+Removed this file. Instead, moved index creation into kjv.sql.
+</item>
+<item>
+Several files: Minor reformatting.
+</item>
+<item>
+Converted Changes.txt to Changes.xml so that HTML and text versions can
+be generated from the same source.
+Changes.xml and related files are located in the Support directory.
+</item>
+</items>
+</changeset>
+
+<changeset>
+<version>1.02</version>
+<date>2002-11-01</date>
+
+<items>
+<item>
+Add phrase searching and record-count-only options to kjv.pl.
+</item>
+</items>
+</changeset>
+
+<changeset>
+<version>1.01</version>
+<date>2002-10-24</date>
+
+<items>
+<item>
+Added missing mention of escapeHTML in "use CGI" statement in kjv.pl.
+</item>
+</items>
+</changeset>
+
+<changeset>
+<version>1.00</version>
+<date>2002-09-10</date>
+
+<items>
+<item>
+Initial release.
+</item>
+</items>
+</changeset>
+
+</changelog>
