@@ -209,4 +209,8 @@ plt.close()
 
 ##
 
+###############################################################################
+################## PLOTTING CATEGORICAL DATA WITH SEABORN #####################
+###############################################################################
 
+# https://stanford.edu/~mwaskom/software/seaborn/tutorial/categorical.html
