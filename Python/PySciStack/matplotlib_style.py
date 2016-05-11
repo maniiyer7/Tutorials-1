@@ -23,7 +23,8 @@ plt.style.use('ggplot')  # make matplotlib appearance similar to ggplot
 """
 WHAT IS A COLORMAP
 http://matplotlib.org/users/colormaps.html
-A colormap is a palette of colors assembled to be used in a single plot. colormaps are represented by three dimensions:
+A colormap is a palette of colors assembled to be used in a single plot.
+colormaps are represented by three dimensions:
 Lightness, Red-Green, Yellow-Blue
 
 
@@ -48,8 +49,8 @@ scalarMap.to_rgba()
     To get the RGB values from the ScalarMap object above:
 
 matplotlib.cm.ScalarMappable(norm=None, cmap=None)
-    This is a mixin class to support scalar data to RGBA mapping. The ScalarMappable makes use of data normalization before returning RGBA colors from the given colormap.
-
+    This is a mixin class to support scalar data to RGBA mapping.
+    The ScalarMappable makes use of data normalization before returning RGBA colors from the given colormap.
 """
 
 ### Example of how to specify a colormap:
@@ -161,9 +162,115 @@ plt.show()
 plt.close('all')
 ###############################################################################
 
+###############################################################################
+### HOW TO USE cmap OBJECTS
+# cmap objects are callable, using a numerical value between 0 and 1.
+# The numerical value specifies where in the spectrum of the cmap to pick a color from.
+# When called as cmap(value), it returns the
+###############################################################################
 
 ###############################################################################
-### HOW TO NORMALIZE A COLORMAP
+### (1/3) HOW TO USE A COLORMAP IN A SCATTERPLOT (BY LOOPING THROUGH EACH POINT)
+# an example using three different colormaps for the different y ranges
+# http://stackoverflow.com/questions/26161790/how-to-assign-colors-to-circles-in-matplotlib
+
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as clrs
+import matplotlib
+
+# circles size and position (randomly assigned for this tutorial)
+N, r = 200, .1
+pos = 2.999*np.random.rand(N,2)
+
+cms = matplotlib.cm
+maps = [cms.jet, cms.gray, cms.autumn]
+
+fig = plt.figure(figsize=(6,6)) # give plots a rectangular frame
+ax = fig.add_subplot(111)
+
+for x, y in pos:
+    cmi = int(y)               # an index for which map to use based on y-value
+    #fc = np.random.random()   # use this for random colors selected from regional map
+    fc = x/3.                  # use this for x-based colors
+    color = maps[cmi](fc)      # get the right map, and get the color from the map
+                      # ie, this is like, eg, color=cm.jet(.75) or color=(1.0, 0.58, 0.0, 1.0)
+    circle = plt.Circle((x,y), r, color=color)   # create the circle with the color
+    ax.add_artist(circle)
+ax.set_xlim(0, 3)
+ax.set_ylim(0, 3)
+plt.show()
+###############################################################################
+
+###############################################################################
+### (2/3) MAP FROM VALUES TO COLORS USING COLOR MAPS
+### OPTION 1: MANUALLY CREATE A MAPPING
+### HOW TO USE A COLORMAP IN A SCATTERPLOT (BY SPECIFYING A COLOR LIST)
+### THIS WILL WORK FOR ANY CATEGORICAL VARIABLE, NOT JUST NUMERICAL VARIABLES.
+### FOR CHANGING COLORS BASED ON COLORMAPS, USE THE SAME LOGIC cmap(value) where
+### value is between 0,1
+
+def factor(x):
+    levels = np.unique(x)
+    return [int(np.argwhere(z==levels)) for z in x]
+
+N=10
+pos = np.random.rand(N,2).reshape((2,-1))
+labels = [1,1,1,2,2,3,3,4,4,4]
+
+color_code = factor(labels)
+cmap_name = 'viridis'
+cmap = plt.get_cmap(cmap_name)
+# The following line normalizes the colormap by mapping from our values to [0,1] scale
+cmap_discrete = cmap(np.linspace(0,1,len(np.unique(color_code))))  # RGB values for each level of the cat var
+colors = [cmap_discrete[color_code[i]] for i in range(len(color_code))]  # assign colors to each point based on their value
+
+fig = plt.figure(figsize=(6,6)) # give plots a rectangular frame
+ax = fig.add_subplot(111)
+ax.scatter(x=pos[0], y=pos[1], alpha=0.6, edgecolors='none', c=colors)  # , label=color_code
+
+ax.legend()
+
+plt.close('all')
+###############################################################################
+### (3/4) MAP FROM VALUES TO COLORS USING COLOR MAPS (PLUS LEGEND)
+# To add a legend to a manual mapping, we need to plot each class separately (have to do a loop)
+N=10
+pos = np.random.rand(N,2).reshape((2,-1))
+labels = [1,1,1,2,2,3,3,4,4,4]
+
+color_code = factor(labels)
+cmap_name = 'viridis'
+cmap = plt.get_cmap(cmap_name)
+# The following line normalizes the colormap by mapping from our values to [0,1] scale
+cmap_discrete = cmap(np.linspace(0,1,len(np.unique(color_code))))  # RGB values for each level of the cat var
+colors = [cmap_discrete[color_code[i]] for i in range(len(color_code))]  # assign colors to each point based on their value
+
+fig = plt.figure(figsize=(6,6)) # give plots a rectangular frame
+ax = fig.add_subplot(111)
+for i,lab in enumerate(labels):
+    print i
+    ax.scatter(x=[xc for j,xc in enumerate(pos[0]) if labels[j]==lab],
+               y=[yc for j,yc in enumerate(pos[1]) if labels[j]==lab],
+               alpha=0.6, edgecolors='none', c=colors[i], label=lab)
+
+handles,labels = ax.get_legend_handles_labels()
+ax.legend(handles, labels, loc='upper left', scatterpoints=1)
+
+plt.show()
+plt.close('all')
+
+###############################################################################
+### (4/4) MAP FROM VALUES TO COLORS USING COLOR MAPS (PLUS LEGEND)
+### OPTION 2: NORMALIZE A COLOR MAP USING THE FOLLOWING SYNTAX
+# jet = cm = plt.get_cmap('jet')
+# cNorm  = matplotlib.colors.Normalize(vmin=0, vmax=values[-1])
+# scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=jet)
+# colorVal = scalarMap.to_rgba(values[idx])
+# ax.plot(line, color=colorVal)
+
+### HOW TO NORMALIZE A COLORMAP AND ADD A LEGEND
+# Specifying a colormap
 ### USE matplotlib.colors
 # http://stackoverflow.com/questions/8931268/using-colormaps-to-set-color-of-line-in-matplotlib
 
@@ -189,13 +296,9 @@ ax = fig.add_subplot(111)
 lines = []
 for idx in range(len(curves)):
     line = curves[idx]
-    colorVal = scalarMap.to_rgba(values[idx])
-    colorText = (
-        'color: (%4.2f,%4.2f,%4.2f)'%(colorVal[0],colorVal[1],colorVal[2])
-        )
-    retLine, = ax.plot(line,
-                       color=colorVal,
-                       label=colorText)
+    colorVal = scalarMap.to_rgba(values[idx])  # need to pass this into the plot function
+    colorText = ('color: (%4.2f,%4.2f,%4.2f)'%(colorVal[0],colorVal[1],colorVal[2]))  # for legend
+    retLine, = ax.plot(line, color=colorVal, label=colorText)
     lines.append(retLine)
 
 # legend and grid
@@ -569,5 +672,12 @@ print plt.style.available
 
 ###############################################################################
 
+###############################################################################
+############################# LEGEND FORMATTING ###############################
+###############################################################################
+# http://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
 
+# More reources:
+# http://matplotlib.org/users/legend_guide.html#plotting-guide-legend
+# http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.figlegend
 

@@ -10,20 +10,24 @@ __email__ = 'amir.kavousian@sunrun.com'
 ########################################
 ### LOAD STANDARD MODULES
 
-from BigData.boto.s3.connection import S3Connection
-from BigData.boto.s3.key import Key
+from boto.s3.connection import S3Connection
+from boto.s3.key import Key
 
 ### Connect to S3 bucket
-secretKey = 'AKIAIXPL4ZWH6PCFTPGA'
-awsKey = 'v9p9FGAy3JPffFpKTXun99gEZhOh1hU14Jx4TDWF'
-bucketName = 'environmental-data'
+awsKey = 'ASIAIM3XPXWNT6I7SQYQ'
+secretKey = 'xipZCXqjAqLxByNf9KCgZmMM280IyhwqxYJud2/6'
+bucketName = 'sbb-analytics' # 'sbb-analytics'
+
 conn = S3Connection(secretKey, awsKey)
-buck = conn.get_bucket(bucketName)
+# buck = conn.lookup(bucketName)
+bucksList = conn.get_all_buckets()
+buck = conn.get_bucket(bucketName)  # validate=False
+buck.list()
 ########################################
 
 ########################################
 # Find S3 availability regions
-from BigData.boto.s3.connection import Location
+from boto.s3.connection import Location
 print '\n'.join(i for i in dir(Location) if i[0].isupper())
 ########################################
 
@@ -87,7 +91,7 @@ type(existing_keys[0])
 
 # Check the exitence of a bucket before sending queries to it
 # If the bucket does not exist, a S3ResponseError will commonly be thrown. If you’d rather not deal with any exceptions, you can use the lookup method.
-existent = conn.lookup('environmental-data')
+existent = conn.lookup(bucketName)
 nonexistent = conn.lookup('i-dont-exist-at-all')
 if nonexistent is None:
     print "No such bucket!"
@@ -184,7 +188,7 @@ k.get_metadata('meta2')
 
 #######################################
 ### Lifecycle policy
-from BigData.boto.s3.lifecycle import Lifecycle, Transition, Rule
+from boto.s3.lifecycle import Lifecycle, Transition, Rule
 
 # Configure a lifecycle policy (not yet assigned to any specific bucket)
 to_glacier = Transition(days=30, storage_class='GLACIER')

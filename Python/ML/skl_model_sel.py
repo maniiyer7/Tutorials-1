@@ -204,6 +204,12 @@ clf.score(X_digits[1000:], y_digits[1000:])
 
 
 #######################################
+### EXAMPLE: USE RANDOM FORESTS AND GRID SEARCH TO FIND THE BEST FEATURES
+# http://stackoverflow.com/questions/23174964/how-to-gridsearch-over-transform-arguments-within-a-pipeline-in-scikit-learn
+#######################################
+
+
+#######################################
 from sklearn import svm
 svc = svm.SVC(C=1, kernel='linear')
 from sklearn.grid_search import GridSearchCV

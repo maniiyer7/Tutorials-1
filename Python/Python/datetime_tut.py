@@ -39,7 +39,7 @@ dt.now(pytz.timezone(repgenTimezone)).strftime(unixFormat)
 
 ###############################################################################
 ### GENERAL INFO
-# There are two kinds of date and time objects: “naive” and “aware”.
+# There are two kinds of date and time objects: naive and aware.
 # An aware object has sufficient knowledge of applicable algorithmic and political time adjustments,
 # such as time zone and daylight saving time information, to locate itself relative to other aware objects.
 # A naive object does not contain enough information to unambiguously locate itself relative to other date/time objects.
@@ -214,7 +214,7 @@ yesterday = datetime.date.today() - datetime.timedelta(1)
 delta = yesterday - datetime.date.today()
 
 # timedelta objects are hashable (usable as dictionary keys), support efficient pickling, and
-# in Boolean contexts, a timedelta object is considered to be true if and only if it isn’t equal to timedelta(0).
+# in Boolean contexts, a timedelta object is considered to be true if and only if it is not equal to timedelta(0).
 
 
 # timedelta stores time data in absolute form, so there is no rounding error.

@@ -139,32 +139,6 @@ a.dtype
 type(a[1])
 dt = np.dtype('>H')
 
-### INDEXING FOR ARRAYS
-# Array elements are accessed, sliced, and manipulated just like lists
-a[:2]
-a[3]
-a[0] = 5.
-
-# Arrays can be multidimensional. Unlike lists, different axes are accessed using commas inside bracket notation.
-# Separate lists will each create one line of the resulting array.
-a = np.array([[1, 2, 3], [4, 5, 6]], float)
-a[0,0]
-a[1,1]
-
-# Negative index values start from the end
-a[-1, -2]
-
-# Use of a single ":" in a dimension indicates the use of everything along that dimension.
-# Using : in arrays is the same as leaving the dimension blank in R.
-a[-2,:]
-a[-1:,-2:]  # last line, everything from 2 before last up to the last
-a[-2,-1]
-
-
-# The in statement can be used to test if values are present in an array.
-2 in a
-0 in a
-
 
 ### SHAPE
 # The shape property of an array returns a tuple with the size of each array dimension.
@@ -187,29 +161,6 @@ d = a.reshape(1, -1)  # Create a one-dim array from a matrix.
 y = np.arange(35).reshape(5, 7)
 y[1:5:2, ::3]
 
-### INDEX ARRAYS
-# It is possible to index arrays with other arrays (or lists)
-x = np.arange(10, 1, -1)
-x[np.array([3, 3, 1, 8])]
-# The result of index array operation is an array with the same shape and type of the index array (and not the original array)
-x[np.array([[1,1],[2,3]])]
-# Using index arrays on multidimensional arrays
-y = np.arange(35).reshape(5, 7)
-y[np.array([0, 2, 4]), np.array([0, 1, 2])]
-y[np.array([0, 2, 4]), 1]
-y[np.array([0, 2, 4])]
-# Index arrays using boolean arrays
-b = y > 20
-y[b]
-# If we index a two-dimensional array using a one-dimensional index array, the rows of the multi-dimensional array will be chosen.
-y[b[:, 5]]
-y[np.array([0,2,4]), 1:3]
-# If the dimensions of the boolean index array is smaller than the dimensions of target array,
-# the result will be indexed by the order of the target array, and any remaining dimension will be expanded.
-x = np.arange(30).reshape(2,3,5)
-b = np.array([[True, True, False], [False, True, True]])
-# Here, the result will include all third-dimension elements because the index array only has two dimensions
-x[b]
 
 
 ### OTHER ARRAY OPERATIONS
@@ -249,40 +200,9 @@ np.concatenate((a,b), axis=0)
 np.concatenate((a,b), axis=1)
 ###############################################################################
 
+
+
 ###############################################################################
-### STRUCTURAL INDEXING
-y = np.arange(35).reshape(5, 7)
-y[:, np.newaxis, :].shape
-
-x = np.arange(5)
-x.shape
-x[:, np.newaxis].shape
-x[:, np.newaxis] + x[np.newaxis, :]
-
-z = np.arange(81).reshape(3, 3, 3, 3)
-z[1, ..., 2]
-# this is equivalen to
-z[1, :, :, 2]
-
-
-# The dimensionality of an array can be increased using the newaxis constant in bracket notation
-# np.newaxis creates one element from each single element of the given dimension
-# and puts the new elements in a new dimension.
-# The new array has two dimensions; the one created by newaxis has a length of one
-a = np.array([1, 2, 3], float)
-a[:,]
-a[:,np.newaxis]
-a[:,np.newaxis].shape
-
-a[np.newaxis,:]
-a[np.newaxis,:].shape
-
-# np.newaxis always adds one dimension to the array.
-# The new dimension is added along
-c = a[:,np.newaxis]
-c[np.newaxis,:]
-c[:,np.newaxis].shape
-
 ### BROADCASTING
 x = np.arange(4)
 xx = x.reshape(4, 1)

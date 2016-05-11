@@ -36,7 +36,7 @@ localPath = '/Users/amirkavousian/Documents/Py_Codes/Tutorials_Files/Stats/'
 ###############################################################################
 
 ###############################################################################
-### STANDARDIZING FEATURES BEFORE CLASSIFICATION
+### STANDARDIZING AND SELECTING FEATURES BEFORE CLASSIFICATION
 # Standardization of a dataset is a common requirement for many machine learning estimators:
 # they might behave badly if the individual feature do not more or less look like standard normally distributed data
 # (e.g. Gaussian with 0 mean and unit variance).
@@ -55,6 +55,20 @@ localPath = '/Users/amirkavousian/Documents/Py_Codes/Tutorials_Files/Stats/'
 
 # To use StandardScaler() function:
 X = StandardScaler().fit_transform(X)
+
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+# fit only on training data
+scaler.fit(X_train)
+X_train = scaler.transform(X_train)
+# apply same transformation to test data
+X_test = scaler.transform(X_test)
+
+#######################################
+### FEATURE SELECTION FOR CLASSIFICATION
+# http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.chi2.html
+
+
 ###############################################################################
 
 ###############################################################################
@@ -62,7 +76,8 @@ X = StandardScaler().fit_transform(X)
 ###############################################################################
 
 ##############################################################################
-### CLASSIFICATION USING KNN
+### CLASSIFICATION USING KNN (K-MEANS)
+# http://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html#sklearn.neighbors.KNeighborsClassifier
 
 import numpy as np
 from sklearn import datasets
@@ -96,11 +111,324 @@ iris_y_test
 # NOTE:For many estimators, including the SVMs, having datasets with unit standard deviation for each feature is important to get good prediction.
 ##############################################################################
 
+##############################################################################
+### CLUSTERING USING K NEAREST NEIGHBORS
+# http://scikit-learn.org/stable/modules/neighbors.html
+
+from sklearn.neighbors import NearestNeighbors
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+X = np.array([[-1, -1],
+              [-2, -1],
+              [-3, -2],
+              [1, 1],
+              [2, 1],
+              [3, 2]])
+
+
+plt.figure(figsize=[8,8])
+ax = plt.subplot2grid((1,1), (0,0))
+ax.scatter(X[:,0], X[:,1])
+for xy in zip(X[:,0], X[:,1]):
+    ax.annotate('({0}, {1})'.format(xy[0], xy[1]), xy=xy, textcoords='data')
+plt.close('all')
+
+
+nbrs = NearestNeighbors(n_neighbors=3, algorithm='ball_tree').fit(X)
+
+# Because the query set matches the training set, the nearest neighbor of each point is the point itself, at a distance of zero.
+distances, indices = nbrs.kneighbors(X)
+indices
+distances
+
+
+# produce a sparse graph showing the connections between neighboring points
+nbrs.kneighbors_graph(X).toarray()
+##############################################################################
 
 
 
 ###############################################################################
-#################################### SVM ######################################
+###################### SUPPORT VECTOR MACHINES (SVM) ##########################
+###############################################################################
+# http://scikit-learn.org/stable/modules/svm.html
+"""
+- Good for cases where the number of features is more than number of samples.
+
+- Three classifiers: SVC, NuSVC, LinearSVC
+- LinearSVC is similar to SVC with parameter kernel=’linear’, but implemented in terms of
+liblinear rather than libsvm, so it has more flexibility in the choice of penalties and
+loss functions and should scale better to large numbers of samples.
+- However, since there is randomness in optimization step of SVM, the results of LinearSVC and SVC(kernel='linear') may not perfectly align.
+- SVMs decision function depends on some subset of the training data, called the support vectors.
+
+
+---
+REGULARIZATION
+- Use the "penalty" parameter to make as sparse coefficient vector (L1 regularization).
+The parmeter C is the regularization parameter in SVM model.
+Read this on how to optimize C:
+http://scikit-learn.org/stable/auto_examples/svm/plot_svm_scale_c.html#example-svm-plot-svm-scale-c-py
+
+---
+INTERCEPT
+- Either center the data, or set fit_intercept=True when fitting SVM.
+
+
+---
+- DECISION FUNCTION
+Decition function is the dot product of any point with the orthogonal vector of the separating hyperplance.
+It gives both the distance of a point fron the separating hyperplane, and
+which side of the hyperplane that point sits on.
+If the dot product is positive, the point belongs to the positive class,
+if it is negative it belongs to the negative class.
+The larger the absolute value of the dot product, the farther from separating hyperplane the point is,
+which means the more confidence we have in classifying that point.
+
+---
+FEATURE WEIGHTS (COEFFICIENTS)
+http://stats.stackexchange.com/questions/39243/how-does-one-interpret-svm-feature-weights
+Feature weights (coefficients) are meaningful in the linear kernel case.
+For a general kernel it is difficult to interpret the SVM weights,
+however for the linear SVM there actually is a useful interpretation:
+
+1) Recall that in linear SVM, the result is a hyperplane that separates the classes
+as best as possible. The weights represent this hyperplane,
+by giving you the coordinates of a vector which is orthogonal to the hyperplane -
+these are the coefficients given by svm.coef_. Let's call this vector w.
+
+2) What can we do with this vector? It's direction gives us the predicted class,
+so if you take the dot product of any point with the vector,
+you can tell on which side it is: if the dot product is positive,
+it belongs to the positive class, if it is negative it belongs to the negative class.
+
+3) Finally, you can even learn something about the importance of each feature.
+Let's say the svm would find only one feature useful for separating the data,
+then the hyperplane would be orthogonal to that axis.
+So, you could say that the absolute size of the coefficient
+relative to the other ones gives an indication of how important
+the feature was for the separation.
+For example if only the first coordinate is used for separation,
+w will be of the form (x,0) where x is some non zero number and then |x|>0.
+
+The third point above the basis for the RFE algorithm using the weight vector of
+a linear SVM for feature (gene) selection:
+See Guyon:
+axon.cs.byu.edu/Dan/778/papers/Feature%20Selection/guyon2.pdf
+
+---
+- CLASS PROBABILITIES AND SCORING
+SVM does not produce clas probabilities as a means to estimate classes. Instead, it uses an error
+function (loss function), which is defined as the distance of points from the separating hyperplane,
+and it minimizes that error.
+
+Class probabilities can be calculated using cross-validation, which is computationally expensive.
+The SVC method decision_function gives per-class scores for each sample
+(or a single score per sample in the binary case).
+
+When the constructor option probability is set to True,
+class membership probability estimates (from the methods predict_proba and predict_log_proba)
+are enabled.
+
+In the binary case, the probabilities are calibrated using Platt scaling:
+logistic regression on the SVM’s scores, fit by an additional cross-validation on the training data.
+
+If you want speed, then just replace the SVM with sklearn.linear_model.LogisticRegression.
+That uses the exact same training algorithm as LinearSVC, but with log-loss instead of hinge loss.
+
+---
+SVM CLASS PROBABILITIES
+http://stackoverflow.com/questions/15111408/how-does-sklearn-svm-svcs-function-predict-proba-work-internally
+http://stackoverflow.com/questions/15015710/how-can-i-know-probability-of-class-predicted-by-predict-function-in-support-v
+http://stackoverflow.com/questions/17017882/scikit-learn-predict-proba-gives-wrong-answers
+chrome-extension://oemmndcbldboiebfnladdacbdfmadadm/http://www.csie.ntu.edu.tw/~cjlin/papers/plattprob.pdf
+
+Also note that the probabilities are not 100% in agreement with predicted values.
+Because probabilities are calculated a posteri and based on cross-validation,
+there will be a small difference in probabilities and predictions, which means
+that there are some points where the probability is higher than cutoff, but the points
+are not classified according to the probability,and vice versa.
+
+Per scikit learn documentation, it is advisable to set probability=False and use decision_function instead of predict_proba
+http://scikit-learn.org/stable/modules/svm.html#scores-and-probabilities
+
+
+---
+- UNBALANCED CLASSIFICATION
+In problems where it is desired to give more importance to certain classes or
+certain individual samples keywords class_weight and sample_weight can be used.
+SVC (but not NuSVC) implement a keyword class_weight in the fit method.
+It’s a dictionary of the form {class_label : value},
+where value is a floating point number > 0 that sets the
+parameter C of class class_label to C * value.
+
+Another option is to set the class_weight parameter to 'balanced'.
+The “balanced” mode uses the values of y to automatically adjust weights
+inversely proportional to class frequencies in the input data as
+n_samples / (n_classes * np.bincount(y))
+
+It is highly recommended to set the class_weight='balanced'
+
+
+---
+SUPPORT VECTORS
+The training examples that are closest to the hyperplane are called support vectors.
+
+
+---
+- More on SVM:
+http://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html#sklearn.svm.SVC
+http://scikit-learn.org/stable/modules/generated/sklearn.svm.NuSVC.html#sklearn.svm.NuSVC
+http://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html#sklearn.svm.LinearSVC
+
+Theory:
+http://docs.opencv.org/2.4/doc/tutorials/ml/introduction_to_svm/introduction_to_svm.html
+chrome-extension://oemmndcbldboiebfnladdacbdfmadadm/http://www.cs.ucf.edu/courses/cap6412/fall2009/papers/Berwick2003.pdf
+
+"""
+
+###############################################################################
+### COMPARE DIFFERENT SVM KERNELS
+# http://scikit-learn.org/stable/auto_examples/svm/plot_iris.html#example-svm-plot-iris-py
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn import svm, datasets
+
+# import some data to play with
+iris = datasets.load_iris()
+X = iris.data[:, :2]  # we only take the first two features. We could
+                      # avoid this ugly slicing by using a two-dim dataset
+y = iris.target
+
+h = .02  # step size in the mesh
+
+# we create an instance of SVM and fit out data. We do not scale our
+# data since we want to plot the support vectors
+C = 1.0  # SVM regularization parameter
+svc = svm.SVC(kernel='linear', C=C).fit(X, y)
+rbf_svc = svm.SVC(kernel='rbf', gamma=0.7, C=C).fit(X, y)
+poly_svc = svm.SVC(kernel='poly', degree=3, C=C).fit(X, y)
+lin_svc = svm.LinearSVC(C=C).fit(X, y)
+
+# create a mesh to plot in
+x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                     np.arange(y_min, y_max, h))
+
+# title for the plots
+titles = ['SVC with linear kernel',
+          'LinearSVC (linear kernel)',
+          'SVC with RBF kernel',
+          'SVC with polynomial (degree 3) kernel']
+
+
+for i, clf in enumerate((svc, lin_svc, rbf_svc, poly_svc)):
+    # Plot the decision boundary. For that, we will assign a color to each
+    # point in the mesh [x_min, m_max]x[y_min, y_max].
+    plt.subplot(2, 2, i + 1)
+    plt.subplots_adjust(wspace=0.4, hspace=0.4)
+
+    Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+
+    # Put the result into a color plot
+    Z = Z.reshape(xx.shape)
+    plt.contourf(xx, yy, Z, cmap=plt.cm.Paired, alpha=0.8)
+
+    # Plot also the training points
+    plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Paired)
+    plt.xlabel('Sepal length')
+    plt.ylabel('Sepal width')
+    plt.xlim(xx.min(), xx.max())
+    plt.ylim(yy.min(), yy.max())
+    plt.xticks(())
+    plt.yticks(())
+    plt.title(titles[i])
+
+plt.show()
+plt.close('all')
+###############################################################################
+
+###############################################################################
+### SVM PLOT SEPARATING HYPERPLANE
+# http://scikit-learn.org/stable/auto_examples/svm/plot_separating_hyperplane.html#example-svm-plot-separating-hyperplane-py
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn import svm
+
+# we create 40 separable points
+# numpy.r_ syntax: http://stackoverflow.com/questions/14468158/understanding-the-syntax-of-numpy-r-concatenation
+np.random.seed(0)
+X = np.r_[np.random.randn(20, 2) - [2, 2], np.random.randn(20, 2) + [2, 2]]
+Y = [0] * 20 + [1] * 20
+
+
+### fit the model
+clf = svm.SVC(kernel='linear')
+clf.fit(X, Y)
+
+"""
+Separating hyperplane formula:
+ax + by + c = 0
+
+Mapping the formua above to SVM model results:
+w: list of SVM coefficients
+w[0]: a
+w[1]: b
+intercept : c
+
+To turn into y = mx + h
+m = -a/b = - w[0] / w[1]
+h = -c/b = - intercept / w[1]
+
+A line passing through point (j,k) and having slope m:
+We just need the correct intercept. The slope we already know is m.
+y = mx + h
+k = mj + h
+If we set h = k - mj then the equation above will be correct.
+h = k - mj
+The equation of the line becomes:
+y = mx + (k - mj)
+
+Mapping to SVM output:
+b: a support vector
+y = mx + (k - mj)
+y = mx + (b[1] - m*b[0])
+"""
+
+### get the separating hyperplane
+w = clf.coef_[0]  # this is the normal vector that specifies the separating hyperplane
+m = -w[0] / w[1]  # the direction of the separating hyperplane
+h = - (clf.intercept_[0]) / w[1]
+xx = np.linspace(-5, 5)
+yy = m * xx + h  # separating hyperplane (solid line in plot)
+
+
+### plot the parallels to the separating hyperplane that pass through the support vectors
+# we can have any number of support vectors, as long as the line connecting them on either side is parallel to the separating hyperplane
+b0 = clf.support_vectors_[0]  # the first support vector. This is a point closest to the separating hyperplane on one side.
+yy_down = m * xx + (b0[1] - m * b0[0])  # the line parallel to separating hyperplane that passes through this support vector
+b1 = clf.support_vectors_[-1]  # the last support vector. This is a point closest to the separating hyperplane on the other side.
+yy_up = m * xx + (b1[1] - m * b1[0])  # the line parallel to separating hyperplane that passes through this support vector
+
+
+### plot the line, the points, and the nearest vectors to the plane
+plt.plot(xx, yy, 'k-')
+plt.plot(xx, yy_down, 'k--')
+plt.plot(xx, yy_up, 'k--')
+
+plt.scatter(clf.support_vectors_[:, 0], clf.support_vectors_[:, 1],
+            s=80, facecolors='none')
+plt.scatter(X[:, 0], X[:, 1], c=Y, cmap=plt.cm.Paired)
+
+plt.axis('tight')
+plt.show()
+
+plt.close('all')
 ###############################################################################
 
 
@@ -230,6 +558,368 @@ plt.draw()
 
 
 ###############################################################################
+### SVM DECISION FUNCTION VS PROBABILITIES VS PREDICT
+# A function that explains how scikit calculates decision functions and assigns classes
+# http://stackoverflow.com/questions/20113206/scikit-learn-svc-decision-function-and-predict
+# I've only implemented the linear and rbf kernels
+
+#TODO: needs debugging. Does not work now.
+
+def kernel(params, sv, X):
+    if params.get('kernel') == 'linear':
+        return [np.dot(X, vi) for vi in sv]
+    elif params.get('kernel') == 'rbf':
+        return [np.exp(-params.get('gamma') * np.dot(vi - X, (vi - X).T)) for vi in sv]
+
+
+# This replicates clf.decision_function(X)
+def decision_function(params, sv, nv, a, b, X):
+    # calculate the kernels
+    k = kernel(params, sv, X)
+
+    # define the start and end index for support vectors for each class
+    start = [sum(nv[:i]) for i in range(len(nv))]
+    end = [start[i] + nv[i] for i in range(len(nv))]
+
+    # calculate: sum(a_p * k(x_p, x)) between every 2 classes
+    c = [ sum(a[ i ][p] * k[p] for p in range(start[j], end[j])) +
+          sum(a[j-1][p] * k[p] for p in range(start[i], end[i]))
+                for i in range(len(nv)) for j in range(i+1,len(nv))]
+
+    # add the intercept
+    return [sum(x) for x in zip(c, b)]
+
+
+# This replicates clf.predict(X)
+def predict(params, sv, nv, a, b, cs, X):
+    ''' params = model parameters
+        sv = support vectors
+        nv = # of support vectors per class
+        a  = dual coefficients
+        b  = intercepts
+        cs = list of class names
+        X  = feature to predict
+    '''
+    decision = decision_function(params, sv, nv, a, b, X)
+    votes = [(i if decision[p] > 0 else j) for p,(i,j) in
+            enumerate((i,j) for i in range(len(cs)) for j in range(i+1,len(cs)))]
+
+    return cs[max(set(votes), key=votes.count)]
+
+
+### RUN ON A RANDOM DATASET
+np.random.seed(0)
+X = np.r_[np.random.randn(20, 2) - [2, 2], np.random.randn(20, 2) + [2, 2]]
+y = [0] * 20 + [1] * 20
+
+# Create model
+clf = svm.SVC(kernel='linear', gamma=0.001, C=100.)
+
+# Fit model using features, X, and labels, Y.
+clf.fit(X, y)
+
+# Get parameters from model
+params = clf.get_params()
+sv = clf.support_vectors_
+nv = clf.n_support_
+a  = clf.dual_coef_
+b  = clf._intercept_
+cs = clf.classes_
+
+# Use the functions to predict
+print(predict(params, sv, nv, a, b, cs, X))
+
+# Compare with the builtin predict
+print(clf.predict(X))
+
+###############################################################################
+
+###############################################################################
+### ESTIMATE PROBABILITIES, SCORES, DECISION FUNCTIONS
+# Note: these probabilities are estimted by cross-validation posterior to fitting the points. So they may be inconsistent with the fitted values.
+# To get the confidence in the fitted values of training points, see decision function.
+clf.predict_proba(X_train)[:,1]
+clf.predict_proba(X_test)
+
+# Note that the cutoff probability is not necessarily 50%. It depends on the class weights.
+prob_df = pd.DataFrame({'Probabilities': clf.predict_proba(X_train)[:,1],
+             'Predictions': clf.predict(X_train)})
+cl_bal = sum(y_train) / float(len(y_train))
+y_train_score = clf.decision_function(X_train)
+prob_df['Decision_Function'] = y_train_score
+prob_df.head()
+prob_df[prob_df['Probabilities'] > cl_bal]
+prob_df[prob_df['Probabilities'] < cl_bal]
+
+
+### SUPPORT VECTORS
+# support vectors are points that are closest to the separatng hyperplanes (hardest to classify)
+svectors = clf.support_vectors_
+
+# get indices of support vectors
+svectors_idx = clf.support_
+
+# get number of support vectors for each class
+clf.n_support_
+###############################################################################
+
+###############################################################################
+### ROC CURVE FOR SVM
+# http://stackoverflow.com/questions/29682104/how-to-plot-roc-curve-with-scikit-learn-for-the-multiclass-case
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn import svm, datasets
+from sklearn.metrics import roc_curve, auc
+from sklearn.cross_validation import train_test_split
+from sklearn.preprocessing import label_binarize
+from sklearn.multiclass import OneVsRestClassifier
+from scipy import interp
+
+# Import some data to play with
+iris = datasets.load_iris()
+X = iris.data
+y = iris.target
+
+# Binarize the output
+y = label_binarize(y, classes=[0, 1, 2])
+n_classes = y.shape[1]
+
+# Add noisy features to make the problem harder
+random_state = np.random.RandomState(0)
+n_samples, n_features = X.shape
+X = np.c_[X, random_state.randn(n_samples, 200 * n_features)]
+
+# shuffle and split training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.5,
+                                                    random_state=0)
+
+# Learn to predict each class against the other
+classifier = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True,
+                                 random_state=random_state))
+y_score = classifier.fit(X_train, y_train).decision_function(X_test)
+
+# Compute ROC curve and ROC area for each class
+fpr = dict()
+tpr = dict()
+roc_auc = dict()
+for i in range(n_classes):
+    fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
+    roc_auc[i] = auc(fpr[i], tpr[i])
+
+# Compute micro-average ROC curve and ROC area
+fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), y_score.ravel())
+roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+
+
+#######################################
+# Plot of a ROC curve for a specific class
+plt.figure()
+plt.plot(fpr[2], tpr[2], label='ROC curve (area = %0.2f)' % roc_auc[2])
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver operating characteristic example')
+plt.legend(loc="lower right")
+plt.show()
+plt.close('all')
+
+#######################################
+# Plot ROC curves for the multiclass problem
+
+# Compute macro-average ROC curve and ROC area
+
+# First aggregate all false positive rates
+all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
+
+# Then interpolate all ROC curves at this points
+mean_tpr = np.zeros_like(all_fpr)
+for i in range(n_classes):
+    mean_tpr += interp(all_fpr, fpr[i], tpr[i])
+
+# Finally average it and compute AUC
+mean_tpr /= n_classes
+
+fpr["macro"] = all_fpr
+tpr["macro"] = mean_tpr
+roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+
+# Plot all ROC curves
+plt.figure()
+plt.plot(fpr["micro"], tpr["micro"],
+         label='micro-average ROC curve (area = {0:0.2f})'
+               ''.format(roc_auc["micro"]),
+         linewidth=2)
+
+plt.plot(fpr["macro"], tpr["macro"],
+         label='macro-average ROC curve (area = {0:0.2f})'
+               ''.format(roc_auc["macro"]),
+         linewidth=2)
+
+for i in range(n_classes):
+    plt.plot(fpr[i], tpr[i], label='ROC curve of class {0} (area = {1:0.2f})'
+                                   ''.format(i, roc_auc[i]))
+
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Some extension of Receiver operating characteristic to multi-class')
+plt.legend(loc="lower right")
+plt.show()
+plt.close('all')
+###############################################################################
+
+
+
+###############################################################################
+### SVM REGULARIZATION PARAMETER
+# http://scikit-learn.org/stable/auto_examples/svm/plot_svm_scale_c.html#example-svm-plot-svm-scale-c-py
+"""
+THEORY:
+- For L1 case, model consistency, in terms of finding the right set of
+non-zero parameters as well as their signs, can be achieved by scaling C1.
+- For L2 case, the theory says that in order to achieve prediction consistency,
+the penalty parameter should be kept constant as the number of samples grow.
+
+SIMULATION RESULTS
+- In the l1 penalty case, the cross-validation-error correlates best with the test-error,
+when scaling our C with the number of samples, n, which can be seen in the first figure.
+- For the l2 penalty case, the best result comes from the case where C is not scaled.
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.svm import LinearSVC
+from sklearn.cross_validation import ShuffleSplit
+from sklearn.grid_search import GridSearchCV
+from sklearn.utils import check_random_state
+from sklearn import datasets
+
+
+rnd = check_random_state(1)
+
+# set up dataset
+n_samples = 100
+n_features = 300
+
+# l1 data (only 5 informative features)
+X_1, y_1 = datasets.make_classification(n_samples=n_samples,
+                                        n_features=n_features, n_informative=5,
+                                        random_state=1)
+
+# l2 data: non sparse, but less features
+y_2 = np.sign(.5 - rnd.rand(n_samples))
+X_2 = rnd.randn(n_samples, n_features / 5) + y_2[:, np.newaxis]
+X_2 += 5 * rnd.randn(n_samples, n_features / 5)
+
+clf_sets = [(LinearSVC(penalty='l1', loss='squared_hinge', dual=False,
+                       tol=1e-3),
+             np.logspace(-2.3, -1.3, 10), X_1, y_1),
+            (LinearSVC(penalty='l2', loss='squared_hinge', dual=True,
+                       tol=1e-4),
+             np.logspace(-4.5, -2, 10), X_2, y_2)]
+
+colors = ['b', 'g', 'r', 'c']
+
+for fignum, (clf, cs, X, y) in enumerate(clf_sets):
+    # set up the plot for each regressor
+    plt.figure(fignum, figsize=(9, 10))
+
+    for k, train_size in enumerate(np.linspace(0.3, 0.7, 3)[::-1]):
+        param_grid = dict(C=cs)
+        # To get nice curve, we need a large number of iterations to
+        # reduce the variance
+        grid = GridSearchCV(clf, refit=False, param_grid=param_grid,
+                            cv=ShuffleSplit(n=n_samples, train_size=train_size,
+                                            n_iter=250, random_state=1))
+        grid.fit(X, y)
+        scores = [x[1] for x in grid.grid_scores_]
+
+        scales = [(1, 'No scaling'),
+                  ((n_samples * train_size), '1/n_samples'),
+                  ]
+
+        for subplotnum, (scaler, name) in enumerate(scales):
+            plt.subplot(2, 1, subplotnum + 1)
+            plt.xlabel('C')
+            plt.ylabel('CV Score')
+            grid_cs = cs * float(scaler)  # scale the C's
+            plt.semilogx(grid_cs, scores, label="fraction %.2f" %
+                         train_size)
+            plt.title('scaling=%s, penalty=%s, loss=%s' %
+                      (name, clf.penalty, clf.loss))
+
+    plt.legend(loc="best")
+plt.show()
+
+plt.close('all')
+###############################################################################
+
+
+###############################################################################
+### SVM WITH SAMPLE WEIGHTS
+# http://scikit-learn.org/stable/auto_examples/svm/plot_weighted_samples.html
+# If our observations have different weights, apply sample weights to the design matrix
+# using sample_weight parameter of svm.
+# Differential sample weights can happen when for example:
+# when we sample data points knowing that some records are representative of a larger sub-population (eg, poles, surveys, census design)
+# when it is more important to us to get certain points right compared to others
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn import svm
+
+
+def plot_decision_function(classifier, sample_weight, axis, title):
+    # plot the decision function
+    xx, yy = np.meshgrid(np.linspace(-4, 5, 500), np.linspace(-4, 5, 500))
+
+    Z = classifier.decision_function(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+
+    # plot the line, the points, and the nearest vectors to the plane
+    axis.contourf(xx, yy, Z, alpha=0.75, cmap=plt.cm.bone)
+    axis.scatter(X[:, 0], X[:, 1], c=Y, s=100 * sample_weight, alpha=0.9,
+                 cmap=plt.cm.bone)
+
+    axis.axis('off')
+    axis.set_title(title)
+
+
+# we create 20 points
+np.random.seed(0)
+X = np.r_[np.random.randn(10, 2) + [1, 1], np.random.randn(10, 2)]
+Y = [1] * 10 + [-1] * 10
+sample_weight_last_ten = abs(np.random.randn(len(X)))
+sample_weight_constant = np.ones(len(X))
+# and bigger weights to some outliers
+sample_weight_last_ten[15:] *= 5
+sample_weight_last_ten[9] *= 15
+
+# for reference, first fit without class weights
+
+# fit the model
+clf_weights = svm.SVC()
+clf_weights.fit(X, Y, sample_weight=sample_weight_last_ten)
+
+clf_no_weights = svm.SVC()
+clf_no_weights.fit(X, Y)
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+plot_decision_function(clf_no_weights, sample_weight_constant, axes[0],
+                       "Constant weights")
+plot_decision_function(clf_weights, sample_weight_last_ten, axes[1],
+                       "Modified weights")
+
+plt.show()
+###############################################################################
+
+
+###############################################################################
 ####################### RANDOM FOREST CLASSIFICATION ##########################
 ###############################################################################
 
@@ -242,148 +932,42 @@ plt.draw()
 # max_features: The number of features to consider when looking for the best split.
 # estimators_: The collection of fitted sub-estimators.
 # classes_: The classes labels (single output problem), or a list of arrays of class labels (multi-output problem).
-
-
 ##############################################################################
 
-##############################################################################
-### COMPARISON OF DECISION TREES, RANDOM FOREST, EXTRA-TREES, ADA BOOST CLASSIFIER
-# http://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_iris.html
-# RandomForests and ExtraTrees can be fitted in parallel on many cores as each tree is built independently of the others.
-# AdaBoost’s samples are built sequentially and so do not use multiple cores.
 
-# In this example, we compare four different classifiers. And we compare them over three different model setups using different feature sets to start with:
-# (a) Using sepal width and the sepal length features only
-# (b) using the petal length and sepal length only
-# (c) using the petal width and the petal length only
+#######################################
+### RANDOM FORESTS USING ExtraTreesClassifier
+# http://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_importances.html
+from sklearn.ensemble import ExtraTreesClassifier
 
-import numpy as np
-import matplotlib.pyplot as plt
+# Build a forest and compute the feature importances
+forest = ExtraTreesClassifier(n_estimators=250, random_state=0)
 
-from sklearn import clone
-from sklearn.datasets import load_iris
-from sklearn.ensemble import (RandomForestClassifier, ExtraTreesClassifier,
-                              AdaBoostClassifier)
-from sklearn.externals.six.moves import xrange
-from sklearn.tree import DecisionTreeClassifier
+forest.fit(X_train, y_train)
+importances = forest.feature_importances_
+std = np.std([tree.feature_importances_ for tree in forest.estimators_], axis=0)
+indices = np.argsort(importances)[::-1]
 
+# Print the feature ranking
+for f in range(X_train.shape[1]):
+    print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
 
-### SET PARAMETERS
-# Model parameters
-n_classes = 3
-n_estimators = 30
-
-# Plot parameters
-plot_colors = "ryb"
-cmap = plt.cm.RdYlBu
-plot_step = 0.02  # fine step width for decision surface contours
-plot_step_coarser = 0.5  # step widths for coarse classifier guesses
-plot_idx = 1  # Initiate plot index (will increment this via the loop)
-
-# Run parameters
-RANDOM_SEED = 13  # fix the seed on each iteration
+# Plot the feature importances of the forest
+plt.figure()
+plt.title("Feature importances")
+plt.bar(range(X_train.shape[1]), importances[indices],
+       color="r", yerr=std[indices], align="center")
+plt.xticks(range(X_train.shape[1]), indices)
+plt.xlim([-1, X_train.shape[1]])
+plt.show()
+plt.close('all')
+#######################################
 
 
-### LOAD DATA
-iris = load_iris()
+#######################################
+### SCALING RANDOM FOREST
+# https://vimeo.com/63269736
 
-
-### SPECIFY MODELS
-models = [DecisionTreeClassifier(max_depth=None),
-          RandomForestClassifier(n_estimators=n_estimators),
-          ExtraTreesClassifier(n_estimators=n_estimators),
-          AdaBoostClassifier(DecisionTreeClassifier(max_depth=3),
-                             n_estimators=n_estimators)]
-
-
-### FIT DIFFERENT MODELS TO DIFFERENT FEATURE SETS
-# Iterate through three different feature sets
-for pair in ([0, 1], [0, 2], [2, 3]):
-    # Iterate through different classifiers
-    for model in models:
-        ## Prepare data for classifier
-        # We only take the two corresponding features
-        X = iris.data[:, pair]
-        y = iris.target
-
-        # Shuffle
-        idx = np.arange(X.shape[0])
-        np.random.seed(RANDOM_SEED)
-        np.random.shuffle(idx)
-        X = X[idx]
-        y = y[idx]
-
-        # Standardize
-        mean = X.mean(axis=0)
-        std = X.std(axis=0)
-        X = (X - mean) / std
-
-        ## Train and get score
-        # Note: the fit() method of classifiers is self-applied; i.e., it changes the classifier itself. So we should clone() it if we want to reuse the classifier using different setup later.
-        clf = clone(model)
-        clf = model.fit(X, y)
-
-        scores = clf.score(X, y)
-
-        ## Create a title for each column and the console by using str() and
-        # slicing away useless parts of the string
-        model_title = str(type(model)).split(".")[-1][:-2][:-len("Classifier")]
-        model_details = model_title
-        if hasattr(model, "estimators_"):
-            model_details += " with {} estimators".format(len(model.estimators_))
-        print( model_details + " with features", pair, "has a score of", scores )
-
-        ## Plot
-        plt.subplot(3, 4, plot_idx)
-        if plot_idx <= len(models):
-            # Add a title at the top of each column
-            plt.title(model_title)
-
-        # Now plot the decision boundary using a fine mesh as input to a
-        # filled contour plot
-        x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-        y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-        xx, yy = np.meshgrid(np.arange(x_min, x_max, plot_step),
-                             np.arange(y_min, y_max, plot_step))
-
-        # Plot either a single DecisionTreeClassifier or alpha blend the
-        # decision surfaces of the ensemble of classifiers
-        if isinstance(model, DecisionTreeClassifier):
-            Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
-            Z = Z.reshape(xx.shape)
-            cs = plt.contourf(xx, yy, Z, cmap=cmap)
-        else:
-            # Choose alpha blend level with respect to the number of estimators
-            # that are in use (noting that AdaBoost can use fewer estimators
-            # than its maximum if it achieves a good enough fit early on)
-            estimator_alpha = 1.0 / len(model.estimators_)
-            for tree in model.estimators_:
-                Z = tree.predict(np.c_[xx.ravel(), yy.ravel()])
-                Z = Z.reshape(xx.shape)
-                cs = plt.contourf(xx, yy, Z, alpha=estimator_alpha, cmap=cmap)
-
-        # Build a coarser grid to plot a set of ensemble classifications
-        # to show how these are different to what we see in the decision
-        # surfaces. These points are regularly space and do not have a black outline
-        xx_coarser, yy_coarser = np.meshgrid(np.arange(x_min, x_max, plot_step_coarser),
-                                             np.arange(y_min, y_max, plot_step_coarser))
-        Z_points_coarser = model.predict(np.c_[xx_coarser.ravel(), yy_coarser.ravel()]).reshape(xx_coarser.shape)
-        cs_points = plt.scatter(xx_coarser, yy_coarser, s=15, c=Z_points_coarser, cmap=cmap, edgecolors="none")
-
-        # Plot the training points, these are clustered together and have a
-        # black outline
-        for i, c in zip(xrange(n_classes), plot_colors):
-            idx = np.where(y == i)
-            plt.scatter(X[idx, 0], X[idx, 1], c=c, label=iris.target_names[i],
-                        cmap=cmap)
-
-        plot_idx += 1  # move on to the next plot in sequence
-
-plt.suptitle("Classifiers on feature subsets of the Iris dataset")
-plt.axis("tight")
-
-plt.draw()
-plt.close()
 ##############################################################################
 
 ###############################################################################
@@ -1383,6 +1967,8 @@ plt.close('all')
 
 
 ###############################################################################
+###############################################################################
+###############################################################################
 ### COMPARING THE DECISION SURFACE OF DIFFERENT CLASSIFIERS ON IRIS DATA SET
 # http://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_iris.html
 
@@ -1509,4 +2095,116 @@ plt.axis("tight")
 plt.draw()
 ###############################################################################
 
+###############################################################################
+###############################################################################
+### Comparison of Calibration of Classifier
+# http://scikit-learn.org/stable/auto_examples/calibration/plot_compare_calibration.html#example-calibration-plot-compare-calibration-py
+"""
+Well calibrated classifiers are probabilistic classifiers for which
+the output of the predict_proba method can be directly interpreted as a confidence level.
+For instance a well calibrated (binary) classifier should classify the samples
+such that among the samples to which it gave a predict_proba value
+close to 0.8, approx. 80% actually belong to the positive class.
 
+- LogisticRegression returns well calibrated predictions
+as it directly optimizes log-loss. In contrast, the other methods return biased probilities,
+with different biases per method:
+
+- GaussianNaiveBayes tends to push probabilties to 0 or 1 (note the counts in the histograms).
+This is mainly because it makes the assumption that features are conditionally independent
+given the class, which is not the case in this dataset which contains 2 redundant features.
+
+- RandomForestClassifier shows the opposite behavior:
+the histograms show peaks at approx. 0.2 and 0.9 probability,
+while probabilities close to 0 or 1 are very rare. An explanation for this is given by
+Niculescu-Mizil and Caruana [1]: “Methods such as bagging and random forests that
+average predictions from a base set of models can have difficulty making predictions
+near 0 and 1 because variance in the underlying base models will bias predictions that
+should be near zero or one away from these values. Because predictions are restricted
+to the interval [0,1], errors caused by variance tend to be one- sided near zero and one.
+For example, if a model should predict p = 0 for a case, the only way bagging can achieve this
+is if all bagged trees predict zero. If we add noise to the trees that bagging is averaging over,
+this noise will cause some trees to predict values larger than 0 for this case,
+thus moving the average prediction of the bagged ensemble away from 0.
+We observe this effect most strongly with random forests because the base-level trees
+trained with random forests have relatively high variance due to feature subseting.”
+As a result, the calibration curve shows a characteristic sigmoid shape, indicating
+that the classifier could trust its “intuition” more and return probabilties closer to 0 or 1
+typically.
+
+- Support Vector Classification (SVC) shows an even more sigmoid curve
+as the RandomForestClassifier, which is typical for maximum-margin methods
+(compare Niculescu-Mizil and Caruana [1]), which focus on hard samples that are
+close to the decision boundary (the support vectors).
+"""
+
+
+import numpy as np
+np.random.seed(0)
+
+import matplotlib.pyplot as plt
+
+from sklearn import datasets
+from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import LinearSVC
+from sklearn.calibration import calibration_curve
+
+X, y = datasets.make_classification(n_samples=100000, n_features=20,
+                                    n_informative=2, n_redundant=2)
+
+train_samples = 100  # Samples used for training the models
+
+X_train = X[:train_samples]
+X_test = X[train_samples:]
+y_train = y[:train_samples]
+y_test = y[train_samples:]
+
+# Create classifiers
+lr = LogisticRegression()
+gnb = GaussianNB()
+svc = LinearSVC(C=1.0)
+rfc = RandomForestClassifier(n_estimators=100)
+
+
+# Plot calibration plots
+plt.figure(figsize=(10, 10))
+ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
+ax2 = plt.subplot2grid((3, 1), (2, 0))
+
+ax1.plot([0, 1], [0, 1], "k:", label="Perfectly calibrated")
+for clf, name in [(lr, 'Logistic'),
+                  (gnb, 'Naive Bayes'),
+                  (svc, 'Support Vector Classification'),
+                  (rfc, 'Random Forest')]:
+
+    clf.fit(X_train, y_train)
+
+    if hasattr(clf, "predict_proba"):
+        prob_pos = clf.predict_proba(X_test)[:, 1]
+    else:  # use decision function
+        prob_pos = clf.decision_function(X_test)
+        prob_pos = (prob_pos - prob_pos.min()) / (prob_pos.max() - prob_pos.min())
+
+    fraction_of_positives, mean_predicted_value = calibration_curve(y_test, prob_pos, n_bins=10)
+
+    ax1.plot(mean_predicted_value, fraction_of_positives, "s-",
+             label="%s" % (name, ))
+
+    ax2.hist(prob_pos, range=(0, 1), bins=10, label=name,
+             histtype="step", lw=2)
+
+ax1.set_ylabel("Fraction of positives")
+ax1.set_ylim([-0.05, 1.05])
+ax1.legend(loc="lower right")
+ax1.set_title('Calibration plots  (reliability curve)')
+
+ax2.set_xlabel("Mean predicted value")
+ax2.set_ylabel("Count")
+ax2.legend(loc="upper center", ncol=2)
+
+plt.tight_layout()
+plt.show()
+
+plt.close('all')

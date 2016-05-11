@@ -338,7 +338,7 @@ plt.close()
 
 
 #######################################
-### COMPARISON OF PROBABILITY AND FREQUENCY HISTOGRAMS
+### COMPARISON OF PROBABILITY AND FREQUENCY HISTOGRAMS (also an example of a multiplot)
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -346,8 +346,8 @@ mu, sigma = 100, 15
 x = mu + sigma * np.random.randn(10000)
 
 plt.figure(figsize=[10,8])  # is not necessary unless you want to change the figure size.
-ax1 = plt.subplot2grid((2,1), (0,0), colspan=3)
-ax2 = plt.subplot2grid((2,1), (1,0), colspan=2)
+ax1 = plt.subplot2grid((2,3), (0,0), colspan=3)  # the shape parameter (2,3) will dictate plot dimension ratios
+ax2 = plt.subplot2grid((2,3), (1,0), colspan=3)
 
 # DENSITY: the histogram of the data (the area of each bar is equal to its probability
 n, bins, patches = ax1.hist(x, 50, normed=1, facecolor='g', alpha=0.75)
@@ -641,6 +641,92 @@ autolabel(rects2)
 plt.show()
 
 plt.close('all')
+
+
+###############################################################################
+##################### STACKED BAR CHART AND PIE CHART #########################
+###############################################################################
+### VISUALIZING THE DISTRIBUTION OF A CATEGORICAL VARIABLE IN A POPULATION
+# A stacked barchart says something about the population as a whole and is almost always based on count of each group,
+# while a multiple barchart compares certain value among different groups. This value can be count (size) of each group too;
+# but in that can the goal is to compare the counts of individual groups against each other.
+# This plot is frequently used in place of a piechart.
+
+
+###############################################################################
+# https://de.dariah.eu/tatom/topic_model_visualization.html
+import numpy as np
+import matplotlib.pyplot as plt
+
+docnames = ['Austen_Emma',
+ 'Austen_Pride',
+ 'Austen_Sense',
+ 'CBronte_Jane',
+ 'CBronte_Professor',
+ 'CBronte_Villette']
+
+doctopic = np.array([
+    [ 0.0625,  0.1736,  0.0819,  0.4649,  0.2171],
+    [ 0.0574,  0.1743,  0.0835,  0.4008,  0.2839],
+    [ 0.0599,  0.1645,  0.0922,  0.2034,  0.4801],
+    [ 0.189 ,  0.1897,  0.3701,  0.1149,  0.1362],
+    [ 0.2772,  0.2681,  0.2387,  0.0838,  0.1322],
+    [ 0.3553,  0.193 ,  0.2409,  0.0865,  0.1243]])
+
+N, K = doctopic.shape  # N documents (populations), K topics (groups)
+ind = np.arange(N)  # the x-axis locations for the novels
+width = 0.5  # the width of the bars
+plots = []
+height_cumulative = np.zeros(N)
+for k in range(K):
+    color = plt.cm.Spectral(k/float(K))
+    print color
+    if k == 0:
+        p = plt.bar(ind, doctopic[:, k], width, color=color)
+    else:
+        p = plt.bar(ind, doctopic[:, k], width, bottom=height_cumulative, color=color)
+    height_cumulative += doctopic[:, k]
+    plots.append(p)
+
+plt.ylim((0, 1))  # proportions sum to 1, so the height of the stacked bars is 1
+plt.ylabel('Topics')
+plt.title('Topics in novels')
+plt.xticks(ind+width/2, docnames)
+plt.yticks(np.arange(0, 1, 10))
+topic_labels = ['Topic #{}'.format(k) for k in range(K)]
+plt.legend([p[0] for p in plots], topic_labels)
+
+plt.draw()
+plt.close('all')
+
+# see http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.legend for details
+# on making a legend in matplotlib
+###############################################################################
+
+###############################################################################
+# http://stackoverflow.com/questions/30858138/manipulating-top-and-bottom-margins-in-pyplot-horizontal-stacked-bar-chart-barh/30861795#30861795
+from random import random
+Y = ['A', 'B', 'C', 'D', 'E','F','G','H','I','J', 'K']
+y_pos = np.arange(len(Y))
+data = [(r, 1-r) for r in [random() for i in range(len(Y))]]
+print data
+a,b = zip(*data)
+
+fig = plt.figure(figsize=(8,16))
+ax = fig.add_subplot(111)
+ax.barh(y_pos, a, color='b', align='center')
+ax.barh(y_pos, b, left=a, color='r', align='center')
+ax.set_yticks(y_pos)
+ax.set_yticklabels(Y, size=16)
+ax.set_xlabel('X label', size=20)
+plt.ylim(min(y_pos)-1, max(y_pos)+1)
+plt.xlim(0,1)
+
+plt.show()
+plt.close('all')
+###############################################################################
+
+
 ###############################################################################
 ######################## MULTIPLOTS (MULTIPLE PLOTS) ##########################
 ###############################################################################
@@ -818,3 +904,46 @@ for i in range(12):
 # http://matplotlib.org/examples/pylab_examples/subplots_demo.html#pylab-examples-subplots-demo
 ###############################################################################
 
+###############################################################################
+### SUBPLOT WITH subplot2grid layout parameters
+import numpy as np
+import matplotlib.pyplot as plt
+
+mu, sigma = 100, 15
+x = mu + sigma * np.random.randn(10000)
+
+plt.figure(figsize=[10,8])  # is not necessary unless you want to change the figure size.
+ax1 = plt.subplot2grid((2,3), (0,0), colspan=3)  # the shape parameter (2,3) will dictate plot dimension ratios
+ax2 = plt.subplot2grid((2,3), (1,0), colspan=2)  # this will occupy both (1,0) and (1,1)
+ax3 = plt.subplot2grid((2,3), (1,2), colspan=1)  # hence the (1,2) index for this
+
+# DENSITY: the histogram of the data (the area of each bar is equal to its probability
+n, bins, patches = ax1.hist(x, 50, normed=1, facecolor='g', alpha=0.75)
+ax1.set_xlabel('Smarts')
+ax1.set_ylabel('Probability')
+ax1.set_title('Histogram of IQ')
+ax1.text(60, .025, r'$\mu=100,\ \sigma=15$')
+ax1.axis([40, 160, 0, 0.03])
+ax1.grid(True)
+
+# FREQUENCY: remove normed=1 if you want to plot frequeny
+n, bins, patches = ax2.hist(x, 50, facecolor='g', alpha=0.75)
+ax2.set_xlabel('Smarts')
+ax2.set_ylabel('Frequency')
+ax2.set_title('Histogram of IQ')
+ax2.text(60, .025, r'$\mu=100,\ \sigma=15$')
+ax2.axis([40, 160, 0, 800])
+ax2.grid(True)
+
+# FREQUENCY: remove normed=1 if you want to plot frequeny
+n, bins, patches = ax3.hist(x, 50, facecolor='g', alpha=0.75)
+ax3.set_xlabel('Smarts')
+ax3.set_ylabel('Frequency')
+ax3.set_title('Histogram of IQ')
+ax3.text(60, .025, r'$\mu=100,\ \sigma=15$')
+ax3.axis([40, 160, 0, 800])
+ax3.grid(True)
+
+plt.draw()
+plt.close('all')
+###############################################################################

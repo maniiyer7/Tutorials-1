@@ -6,6 +6,9 @@ __email__ = 'amir.kavousian@sunrun.com'
 # other resources:
 # http://scikit-learn.org/stable/tutorial/
 ###############################################################################
+from sklearn import svm
+from sklearn import datasets
+import pickle
 
 ###############################################################################
 ############################## SCIKIT-LEARN ###################################
@@ -56,7 +59,8 @@ clf.best_score_
 clf.best_estimator_.C
 
 #######################################
-# (c) All the parameters of an estimator can be set when it is instantiated or by modifying the corresponding attribute
+# (c) All the parameters of an estimator can be set when it is instantiated or
+# by modifying the corresponding attribute
 estimator = Estimator(param1=1, param2=2)
 estimator.param1
 
@@ -76,7 +80,8 @@ svc = svm.SVC(kernel='linear')  # equivalent to estimator in examples above
 svc.fit(iris_X_train, iris_y_train)
 
 # An estimator is any object that learns from data;
-# it may be a classification, regression or clustering algorithm or a transformer that extracts/filters useful features from raw data.
+# it may be a classification, regression or clustering algorithm or
+# a transformer that extracts/filters useful features from raw data.
 # Here the estimator is the class sklearn.svm.SVC that implements support vector classification.
 from sklearn import svm
 clf = svm.SVC(gamma=0.001, C=100.)  # classifier
@@ -179,9 +184,13 @@ pl.close()
 
 #######################################
 ### scikit-learn object model:
-# Fitting data: All estimator objects expose a fit method that takes a dataset (usually a 2-d array): estimator.fit(data)
-# Estimator parameters: All the parameters of an estimator can be set when it is instantiated or by modifying the corresponding attribute: estimator = Estimator(param1=1, param2=2)
-# Estimated parameters: All the estimated parameters are attributes of the estimator object ending by an underscore: estimator.estimated_param_
+# (a) Fitting data: All estimator objects expose a fit method that takes a dataset (usually a 2-d array):
+#     estimator.fit(data)
+# (b) Estimator parameters: All the parameters of an estimator can be set when it is instantiated or
+#     by modifying the corresponding attribute:
+#     estimator = Estimator(param1=1, param2=2)
+# (c) Estimated parameters: All the estimated parameters are attributes of the estimator object ending by an underscore:
+#     estimator.estimated_param_
 
 
 ######################################
@@ -209,7 +218,7 @@ pl.close()
 
 
 ###############################################################################
-############################ scikit PIPELINE ##################################
+############################# scikit PIPELINE #################################
 ###############################################################################
 ### What is a pipeline?
 # http://scikit-learn.org/stable/modules/generated/sklearn.pipeline.Pipeline.html
@@ -249,7 +258,7 @@ anova_svm = Pipeline([('anova', anova_filter),
                       ('svc', clf)])
 
 # Step 4 (optional): fine-tune the pipeline.
-# You can set the parameters using the names issued
+# You can set the parameters using the names of pipeline elements and double underscors __ to attach parameters values to them.
 # For instance, fit using a k of 10 in the SelectKBest
 # and a parameter 'C' of the svm
 anova_svm.set_params(anova__k=10, svc__C=.1).fit(X, y)
